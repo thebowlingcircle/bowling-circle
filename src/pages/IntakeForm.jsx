@@ -6,8 +6,8 @@ import ThemeToggle from '../components/ThemeToggle';
 
 const DAYS = ['wednesday'];
 const TIMES = [
-  { value: 'afternoon', label: 'Afternoon' },
-  { value: 'night', label: 'Night' },
+  { value: 'afternoon', label: 'Afternoon — ₹600' },
+  { value: 'night', label: 'Night — ₹850' },
 ];
 const SIZES = ['2-3','4-5','5-6','any'];
 const ARENAS = ['The Game Palacio Pune - The Mills, Sangamwadi'];
