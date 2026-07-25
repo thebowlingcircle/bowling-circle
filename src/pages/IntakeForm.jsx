@@ -5,12 +5,33 @@ import Logo, { LogoStacked } from '../components/Logo';
 import ThemeToggle from '../components/ThemeToggle';
 
 const DAYS = ['wednesday'];
-const TIMES = [
-  { value: 'afternoon', label: 'Afternoon — ₹600' },
-  { value: 'night', label: 'Night — ₹850' },
+const BASE_TIMES = [
+  { value: 'afternoon', label: 'Afternoon' },
+  { value: 'night', label: 'Night' },
 ];
 const SIZES = ['2-3','4-5','5-6','any'];
-const ARENAS = ['The Game Palacio Pune - The Mills, Sangamwadi'];
+const VENUES = [
+  {
+    id: 'game-palacio',
+    name: 'The Game Palacio Pune - The Mills, Sangamwadi',
+    comingSoon: false,
+    prices: { afternoon: 600, night: 850 }
+  },
+  {
+    id: 'kopa',
+    name: 'KOPA - Coming Soon',
+    comingSoon: true,
+    prices: { afternoon: null, night: null }
+  }
+];
+
+// Migrate old area values (full name strings) to venue IDs so existing profiles load correctly
+function areaToId(area) {
+  if (!area) return '';
+  if (VENUES.find(v => v.id === area)) return area;
+  const byName = VENUES.find(v => v.name === area);
+  return byName ? byName.id : area;
+}
 
 const EMPTY = {
   name:'', age:'', gender:'', area:'', whatsapp:'', email:'', occupation:'',
@@ -21,20 +42,20 @@ const EMPTY = {
 // ── Input sanitizers ──
 const sanitize = {
   // names: letters (Latin + Devanagari), spaces, hyphen, apostrophe
-  name:  v => v.replace(/[^a-zA-Z\u0900-\u097F\s'\-]/g, ''),
+  name:  v => v.replace(/[^a-zA-Zऀ-ॿ\s'\-]/g, ''),
   // phone: digits only, one leading + allowed
   phone: v => { const clean = v.replace(/[^0-9+]/g, ''); return clean.startsWith('+') ? '+' + clean.slice(1).replace(/\+/g,'') : clean.replace(/\+/g,''); },
   // general text: letters, digits, spaces, . , - ' ( ) & — no @ # $ ! % ^ * etc.
-  text:  v => v.replace(/[^a-zA-Z0-9\u0900-\u097F\s.,\-'()&]/g, ''),
+  text:  v => v.replace(/[^a-zA-Z0-9ऀ-ॿ\s.,\-'()&]/g, ''),
   // bio: same but also allow ? ! and newlines
-  free:  v => v.replace(/[^a-zA-Z0-9\u0900-\u097F\s.,\-'()&?!\n]/g, ''),
+  free:  v => v.replace(/[^a-zA-Z0-9ऀ-ॿ\s.,\-'()&?!\n]/g, ''),
 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 function validEmail(v) { return EMAIL_RE.test(String(v).trim()); }
 
 function profileToForm(p) {
   return {
-    name: p.name || '', age: p.age || '', gender: p.gender || '', area: p.area || '',
+    name: p.name || '', age: p.age || '', gender: p.gender || '', area: areaToId(p.area || ''),
     whatsapp: p.whatsapp || '', email: p.email || '', occupation: p.occupation || '',
     interests: p.interests || '', bio: p.bio || '', group_size_pref: p.group_size_pref || '',
     availability: { days: ['wednesday'], times: p.availability?.times || [] }
@@ -52,6 +73,15 @@ export default function IntakeForm() {
   const [form, setForm] = useState(EMPTY);
   const [secretWord, setSecretWord] = useState('');
   const isLoggedIn = !!localStorage.getItem('token');
+
+  const selectedVenue = VENUES.find(v => v.id === form.area) || null;
+  const isComingSoon = selectedVenue?.comingSoon ?? false;
+
+  function timeLabel(base) {
+    if (!selectedVenue || isComingSoon) return `${base.label} — Coming Soon`;
+    const price = selectedVenue.prices[base.value];
+    return price != null ? `${base.label} — ₹${price}` : base.label;
+  }
 
   useEffect(() => {
     async function load() {
@@ -155,7 +185,7 @@ export default function IntakeForm() {
           <h1>{hasExisting ? `Welcome back${form.name ? ', ' + form.name.split(' ')[0] : ''}!` : <>Join <span className="accent">The Bowling Circle</span></>}</h1>
           <p>{hasExisting
             ? 'Your details are saved. Update anything below and resubmit.'
-            : 'Meet new people in Pune over a game of bowling. Tell us about yourself and we\u2019ll match you into a group.'}</p>
+            : 'Meet new people in Pune over a game of bowling. Tell us about yourself and we’ll match you into a group.'}</p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -175,23 +205,28 @@ export default function IntakeForm() {
             <div className="field"><label>Bowling Arena *</label>
               <select value={form.area} onChange={e => set('area', e.target.value)} required>
                 <option value="">Select a bowling arena</option>
-                {ARENAS.map(a => <option key={a} value={a}>{a}</option>)}
+                {VENUES.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
               </select></div>
+            {isComingSoon && (
+              <div className="info-note" style={{ marginBottom: 12 }}>
+                This venue isn't open for bookings yet — check back soon, or pick an available venue above to continue.
+              </div>
+            )}
             <div className="field" style={{ marginBottom: 0 }}><label>Occupation</label>
               <input value={form.occupation} onChange={e => set('occupation', sanitize.text(e.target.value))} placeholder="Student, engineer, between jobs — anything goes" /></div>
           </div>
 
-          <div className="card form-section">
+          <div className="card form-section" style={isComingSoon ? { opacity: 0.5 } : undefined}>
             <h3 className="section-title">📱 Contact</h3>
             <div className="field"><label>WhatsApp Number *</label>
-              <input type="tel" value={form.whatsapp} onChange={e => set('whatsapp', sanitize.phone(e.target.value))} required placeholder="98XXXXXXXX" inputMode="tel" /></div>
+              <input type="tel" value={form.whatsapp} onChange={e => set('whatsapp', sanitize.phone(e.target.value))} required placeholder="98XXXXXXXX" inputMode="tel" disabled={isComingSoon} /></div>
             <div className="field" style={{ marginBottom: 0 }}><label>Email *</label>
-              <input type="email" value={form.email} onChange={e => set('email', e.target.value.replace(/\s/g,''))} onBlur={() => setEmailTouched(true)} required placeholder="you@example.com" autoComplete="email" />
+              <input type="email" value={form.email} onChange={e => set('email', e.target.value.replace(/\s/g,''))} onBlur={() => setEmailTouched(true)} required placeholder="you@example.com" autoComplete="email" disabled={isComingSoon} />
               <span className="field-hint">We use this to save your spot and send session details.</span>
               {emailTouched && form.email && !validEmail(form.email) && <span className="field-hint" style={{color:'var(--danger)'}}>Enter a valid email like you@example.com</span>}</div>
           </div>
 
-          <div className="card form-section">
+          <div className="card form-section" style={isComingSoon ? { opacity: 0.5 } : undefined}>
             <h3 className="section-title">📅 Availability</h3>
             <div className="field"><label>Available Days</label>
               <div className="pill-row">
@@ -202,26 +237,28 @@ export default function IntakeForm() {
                 ))}</div></div>
             <div className="field" style={{ marginBottom: 0 }}><label>Preferred Times</label>
               <div className="pill-row">
-                {TIMES.map(t => (
+                {BASE_TIMES.map(t => (
                   <button type="button" key={t.value}
                     className={`pill ${form.availability.times.includes(t.value) ? 'active' : ''}`}
-                    onClick={() => toggleAvail('times', t.value)}>{t.label}</button>
+                    onClick={() => toggleAvail('times', t.value)}
+                    disabled={isComingSoon}>{timeLabel(t)}</button>
                 ))}</div></div>
           </div>
 
-          <div className="card form-section">
+          <div className="card form-section" style={isComingSoon ? { opacity: 0.5 } : undefined}>
             <h3 className="section-title">🎳 Preferences</h3>
             <div className="field"><label>Group Size</label>
               <div className="pill-row">
                 {SIZES.map(s => (
                   <button type="button" key={s}
                     className={`pill ${form.group_size_pref === s ? 'active' : ''}`}
-                    onClick={() => set('group_size_pref', s)}>{s}</button>
+                    onClick={() => set('group_size_pref', s)}
+                    disabled={isComingSoon}>{s}</button>
                 ))}</div></div>
             <div className="field"><label>Interests / Hobbies</label>
-              <input value={form.interests} onChange={e => set('interests', sanitize.text(e.target.value))} placeholder="Music, trekking, food…" /></div>
+              <input value={form.interests} onChange={e => set('interests', sanitize.text(e.target.value))} placeholder="Music, trekking, food…" disabled={isComingSoon} /></div>
             <div className="field" style={{ marginBottom: 0 }}><label>Anything else to know about you?</label>
-              <textarea value={form.bio} onChange={e => set('bio', sanitize.free(e.target.value))} rows={3} placeholder="Optional" /></div>
+              <textarea value={form.bio} onChange={e => set('bio', sanitize.free(e.target.value))} rows={3} placeholder="Optional" disabled={isComingSoon} /></div>
           </div>
 
           {isLoggedIn && (
@@ -237,7 +274,7 @@ export default function IntakeForm() {
           )}
 
           {error && <p className="form-error">{error}</p>}
-          <button className="btn btn-primary btn-lg" type="submit" disabled={saving || (form.email && !validEmail(form.email))} style={{ width:'100%' }}>
+          <button className="btn btn-primary btn-lg" type="submit" disabled={saving || isComingSoon || (form.email && !validEmail(form.email))} style={{ width:'100%' }}>
             {saving ? 'Saving…' : hasExisting ? 'Update my details' : 'Count me in 🎳'}
           </button>
           <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', marginTop: 12 }}>
