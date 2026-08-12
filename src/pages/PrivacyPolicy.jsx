@@ -48,8 +48,12 @@ export default function PrivacyPolicy() {
 
       <h3 style={h3}>Payments</h3>
       <p style={p}>
-        The Bowling Circle does not process or store any payment information. Payment for sessions is
-        handled directly between you and the venue.
+        All payments for sessions are processed and handled directly by The Bowling Circle. Payment
+        is collected via UPI, typically by scanning a QR code shared with you after you're matched
+        into a session. We do not store any of your sensitive payment or billing details — no card
+        numbers, bank account details, or UPI PIN ever pass through or get stored on our servers. We
+        may keep a basic record that a payment was made (amount, date, session) for our own
+        accounting.
       </p>
 
       <h3 style={h3}>Age requirement</h3>
