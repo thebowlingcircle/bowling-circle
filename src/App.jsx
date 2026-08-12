@@ -5,6 +5,9 @@ import IntakeForm from './pages/IntakeForm';
 import AdminDashboard from './pages/AdminDashboard';
 import SessionDetail from './pages/SessionDetail';
 import ForgotPassword from './pages/ForgotPassword';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import Footer from './components/Footer';
 
 function AdminRoute({ children }) {
   const token = localStorage.getItem('token');
@@ -32,6 +35,8 @@ export default function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/login"  element={<SignIn />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
         <Route path="/" element={
           <FormGate><IntakeForm /></FormGate>
         } />
@@ -43,6 +48,7 @@ export default function App() {
         } />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <Footer />
     </BrowserRouter>
   );
 }

@@ -35,7 +35,8 @@ function areaToId(area) {
 
 const EMPTY = {
   name:'', age:'', gender:'', area:'', whatsapp:'', email:'', occupation:'',
-  interests:'', bio:'', group_size_pref:'', availability:{ days:['wednesday'], times:[] }
+  interests:'', bio:'', group_size_pref:'', instagram:'', marketing_opt_in:false,
+  availability:{ days:['wednesday'], times:[] }
 };
 
 
@@ -49,6 +50,8 @@ const sanitize = {
   text:  v => v.replace(/[^a-zA-Z0-9ऀ-ॿ\s.,\-'()&]/g, ''),
   // bio: same but also allow ? ! and newlines
   free:  v => v.replace(/[^a-zA-Z0-9ऀ-ॿ\s.,\-'()&?!\n]/g, ''),
+  // instagram handle: strip any @ and keep only valid handle chars (letters, digits, . _)
+  instagram: v => v.replace(/@/g, '').replace(/[^a-zA-Z0-9._]/g, ''),
 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 function validEmail(v) { return EMAIL_RE.test(String(v).trim()); }
@@ -58,6 +61,7 @@ function profileToForm(p) {
     name: p.name || '', age: p.age || '', gender: p.gender || '', area: areaToId(p.area || ''),
     whatsapp: p.whatsapp || '', email: p.email || '', occupation: p.occupation || '',
     interests: p.interests || '', bio: p.bio || '', group_size_pref: p.group_size_pref || '',
+    instagram: p.instagram || '', marketing_opt_in: !!p.marketing_opt_in,
     availability: { days: ['wednesday'], times: p.availability?.times || [] }
   };
 }
@@ -220,10 +224,17 @@ export default function IntakeForm() {
             <h3 className="section-title">📱 Contact</h3>
             <div className="field"><label>WhatsApp Number *</label>
               <input type="tel" value={form.whatsapp} onChange={e => set('whatsapp', sanitize.phone(e.target.value))} required placeholder="98XXXXXXXX" inputMode="tel" disabled={isComingSoon} /></div>
-            <div className="field" style={{ marginBottom: 0 }}><label>Email *</label>
+            <div className="field"><label>Email *</label>
               <input type="email" value={form.email} onChange={e => set('email', e.target.value.replace(/\s/g,''))} onBlur={() => setEmailTouched(true)} required placeholder="you@example.com" autoComplete="email" disabled={isComingSoon} />
               <span className="field-hint">We use this to save your spot and send session details.</span>
               {emailTouched && form.email && !validEmail(form.email) && <span className="field-hint" style={{color:'var(--danger)'}}>Enter a valid email like you@example.com</span>}</div>
+            <div className="field" style={{ marginBottom: 0 }}><label>Instagram (optional)</label>
+              <div style={{ display:'flex', alignItems:'center', border:'1.5px solid var(--border)', borderRadius:'var(--radius-sm)', background:'var(--surface)', overflow:'hidden' }}>
+                <span style={{ padding:'0 2px 0 14px', color:'var(--text-muted)', fontWeight:700, userSelect:'none' }}>@</span>
+                <input value={form.instagram} onChange={e => set('instagram', sanitize.instagram(e.target.value))} placeholder="yourhandle" disabled={isComingSoon}
+                  style={{ border:'none', boxShadow:'none', background:'transparent', paddingLeft:2, flex:1 }} />
+              </div>
+              <span className="field-hint">This field is mandatory if you want to participate in our giveaways.</span></div>
           </div>
 
           <div className="card form-section" style={isComingSoon ? { opacity: 0.5 } : undefined}>
@@ -272,6 +283,15 @@ export default function IntakeForm() {
               </div>
             </div>
           )}
+
+          <div className="card form-section" style={isComingSoon ? { opacity: 0.5 } : undefined}>
+            <label style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', fontWeight:700, fontSize:14 }}>
+              <input type="checkbox" checked={form.marketing_opt_in}
+                onChange={e => set('marketing_opt_in', e.target.checked)}
+                disabled={isComingSoon} style={{ width:'auto', margin:0 }} />
+              Send me emails about giveaways and events
+            </label>
+          </div>
 
           {error && <p className="form-error">{error}</p>}
           <button className="btn btn-primary btn-lg" type="submit" disabled={saving || isComingSoon || (form.email && !validEmail(form.email))} style={{ width:'100%' }}>

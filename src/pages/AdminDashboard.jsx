@@ -36,6 +36,7 @@ export default function AdminDashboard() {
   const [filters, setFilters] = useState({ gender:'', area:'', day:'' });
   const [search, setSearch] = useState('');
   const [ageBands, setAgeBands] = useState([]);
+  const [giveawayOnly, setGiveawayOnly] = useState(false);
   const AGE_BANDS = ['16-20','21-24','25-28','29-34','35+'];
   const [showModal, setShowModal] = useState(false);
   const [sessionForm, setSessionForm] = useState({ date:'', time_slot:'', alley_name:'', lane_count:'' });
@@ -129,6 +130,9 @@ export default function AdminDashboard() {
 
   const statusColors = { pending:'#f59e0b', confirmed:'#10b981', completed:'#6366f1' };
 
+  // "Giveaway-eligible only" filters to users who provided an Instagram handle
+  const displayedUsers = giveawayOnly ? users.filter(u => u.instagram) : users;
+
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
       {/* Header */}
@@ -166,7 +170,12 @@ export default function AdminDashboard() {
                   <option key={d} value={d} style={{ textTransform:'capitalize' }}>{d}</option>
                 ))}
               </select>
-              <button className="btn" onClick={() => { setFilters({ gender:'', area:'', day:'' }); setAgeBands([]); setSearch(''); }}>Clear</button>
+              <button className="btn" onClick={() => { setFilters({ gender:'', area:'', day:'' }); setAgeBands([]); setSearch(''); setGiveawayOnly(false); }}>Clear</button>
+              <button type="button" className={`pill ${giveawayOnly ? 'active' : ''}`}
+                style={{ fontSize:12, padding:'5px 12px' }}
+                onClick={() => setGiveawayOnly(v => !v)}>
+                🎁 Giveaway-eligible only
+              </button>
               <input
                 placeholder="Search name, email, WhatsApp…"
                 value={search}
@@ -190,10 +199,10 @@ export default function AdminDashboard() {
                 <thead><tr>
                   <th></th>
                   <th>Name</th><th>Age</th><th>Gender</th><th>Area</th>
-                  <th>WhatsApp</th><th>Email</th><th>Availability</th><th>Joined</th><th></th>
+                  <th>WhatsApp</th><th>Email</th><th>Instagram</th><th>Marketing</th><th>Availability</th><th>Joined</th><th></th>
                 </tr></thead>
                 <tbody>
-                  {users.map(u => (
+                  {displayedUsers.map(u => (
                     <tr key={u.id} className={selected.includes(u.id) ? 'selected' : ''}>
                       <td><input type="checkbox" checked={selected.includes(u.id)} onChange={() => toggleSelect(u.id)} /></td>
                       <td><strong>{u.name}</strong></td>
@@ -202,6 +211,16 @@ export default function AdminDashboard() {
                       <td>{u.area}</td>
                       <td>{u.whatsapp}</td>
                       <td style={{ fontSize:12 }}>{u.email || '—'}</td>
+                      <td style={{ fontSize:12 }}>
+                        {u.instagram
+                          ? <a href={`https://instagram.com/${u.instagram}`} target="_blank" rel="noopener noreferrer" style={{ color:'var(--primary)', fontWeight:700, textDecoration:'none' }}>@{u.instagram}</a>
+                          : <span style={{ color:'var(--text-faint)' }}>—</span>}
+                      </td>
+                      <td>
+                        {u.marketing_opt_in
+                          ? <span className="badge" style={{ background:'#10b98122', color:'#10b981' }}>Opted in</span>
+                          : <span style={{ color:'var(--text-faint)', fontSize:12 }}>—</span>}
+                      </td>
                       <td><AvailChips availability={u.availability} /></td>
                       <td style={{ fontSize:12, color:'var(--text-muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
                       <td style={{ display:'flex', gap:4 }}>
@@ -214,7 +233,7 @@ export default function AdminDashboard() {
                       </td>
                     </tr>
                   ))}
-                  {!users.length && <tr><td colSpan={10} style={{ textAlign:'center', color:'var(--text-muted)', padding:32 }}>No users found</td></tr>}
+                  {!displayedUsers.length && <tr><td colSpan={12} style={{ textAlign:'center', color:'var(--text-muted)', padding:32 }}>No users found</td></tr>}
                 </tbody>
               </table>
             </div>

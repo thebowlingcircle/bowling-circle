@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS users (
   bio               TEXT,
   edit_key          VARCHAR(64),
   secret_word_plain VARCHAR(255),
+  instagram         VARCHAR(30),
+  marketing_opt_in  BOOLEAN       DEFAULT FALSE,
   created_at        TIMESTAMPTZ   DEFAULT NOW()
 );
 
@@ -31,6 +33,8 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS edit_key VARCHAR(64);
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS secret_word_hash VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS secret_word_plain VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS instagram VARCHAR(30);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS marketing_opt_in BOOLEAN DEFAULT FALSE;
 
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique ON users (LOWER(email)) WHERE email IS NOT NULL;
 
