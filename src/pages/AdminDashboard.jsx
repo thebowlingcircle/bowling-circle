@@ -36,13 +36,17 @@ export default function AdminDashboard() {
   const [filters, setFilters] = useState({ gender:'', area:'', day:'' });
   const [search, setSearch] = useState('');
   const [ageBands, setAgeBands] = useState([]);
+  // Giveaway-eligible filter: ALWAYS starts OFF on load. Not persisted anywhere.
   const [giveawayOnly, setGiveawayOnly] = useState(false);
+  // Total user count from an UNFILTERED fetch — the denominator for "Showing X of Y".
+  const [totalUsers, setTotalUsers] = useState(null);
   const AGE_BANDS = ['16-20','21-24','25-28','29-34','35+'];
   const [showModal, setShowModal] = useState(false);
   const [sessionForm, setSessionForm] = useState({ date:'', time_slot:'', alley_name:'', lane_count:'' });
   const [error, setError] = useState('');
 
   useEffect(() => { loadUsers(); }, [filters, ageBands, search]);
+  useEffect(() => { loadTotal(); }, []);
   useEffect(() => { if (tab === 'sessions') loadSessions(); }, [tab]);
   useEffect(() => { if (tab === 'access') loadAccounts(); }, [tab]);
 
@@ -54,6 +58,12 @@ export default function AdminDashboard() {
     if (ageBands.length) params.ages = ageBands.join(',');
     if (search.trim()) params.search = search.trim();
     setUsers(await getUsers(params));
+  }
+
+  // Unfiltered total for the "Showing X of Y" safeguard. Uses the existing
+  // getUsers endpoint with no params — the full user list, no filters applied.
+  async function loadTotal() {
+    try { setTotalUsers((await getUsers({})).length); } catch { /* leave as-is */ }
   }
 
   async function loadSessions() { setSessions(await getSessions()); }
@@ -123,6 +133,7 @@ export default function AdminDashboard() {
       await deleteUser(u.id);
       setUsers(list => list.filter(x => x.id !== u.id));
       setSelected(s => s.filter(id => id !== u.id));
+      setTotalUsers(t => (t == null ? t : t - 1));
     } catch (err) { alert(err.message); }
   }
 
@@ -130,8 +141,12 @@ export default function AdminDashboard() {
 
   const statusColors = { pending:'#f59e0b', confirmed:'#10b981', completed:'#6366f1' };
 
-  // "Giveaway-eligible only" filters to users who provided an Instagram handle
-  const displayedUsers = giveawayOnly ? users.filter(u => u.instagram) : users;
+  // "Giveaway-eligible only" filter. Only narrows the list when the admin has
+  // explicitly turned it ON this session. When OFF, EVERY fetched user is shown —
+  // including users with instagram === null. A user is giveaway-eligible only if
+  // they have a non-empty Instagram handle.
+  const isGiveawayEligible = (u) => u.instagram != null && String(u.instagram).trim() !== '';
+  const displayedUsers = giveawayOnly === true ? users.filter(isGiveawayEligible) : users;
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
@@ -192,6 +207,12 @@ export default function AdminDashboard() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div style={{ fontSize:13, color:'var(--text-muted)', fontWeight:700, margin:'12px 2px' }}>
+              Showing {displayedUsers.length} of {totalUsers ?? users.length} users
+              {(totalUsers ?? users.length) > displayedUsers.length &&
+                <span style={{ color:'var(--text-faint)', fontWeight:400 }}> · filters are hiding {(totalUsers ?? users.length) - displayedUsers.length}</span>}
             </div>
 
             <div className="table-wrap">
