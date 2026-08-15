@@ -5,11 +5,13 @@ import { LogoStacked } from '../components/Logo';
 
 export default function SignUp() {
   const nav = useNavigate();
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm]   = useState('');
-  const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [email, setEmail]         = useState('');
+  const [password, setPassword]   = useState('');
+  const [confirm, setConfirm]     = useState('');
+  const [showPwd, setShowPwd]     = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [error, setError]         = useState('');
+  const [loading, setLoading]     = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -46,11 +48,23 @@ export default function SignUp() {
           </div>
           <div className="field">
             <label>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
+            <div style={{ position: 'relative' }}>
+              <input type={showPwd ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required minLength={6} style={{ paddingRight: 52 }} />
+              <button type="button" onClick={() => setShowPwd(p => !p)}
+                style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', fontSize:12, fontWeight:700, padding:'2px 4px' }}>
+                {showPwd ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
           <div className="field">
             <label>Confirm Password</label>
-            <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required />
+            <div style={{ position: 'relative' }}>
+              <input type={showConfirm ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} required style={{ paddingRight: 52 }} />
+              <button type="button" onClick={() => setShowConfirm(p => !p)}
+                style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', fontSize:12, fontWeight:700, padding:'2px 4px' }}>
+                {showConfirm ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
           {error && <p className="form-error">{error}</p>}
           <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: '100%' }}>

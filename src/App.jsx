@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import SignUp from './pages/SignUp';
 import SignIn from './pages/SignIn';
@@ -29,25 +30,38 @@ function FormGate({ children }) {
 }
 
 export default function App() {
+  // Capture UTM params on first load and persist in sessionStorage so they
+  // survive navigation before the user reaches the intake form.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    ['utm_source', 'utm_medium', 'utm_campaign'].forEach(k => {
+      const v = params.get(k);
+      if (v) sessionStorage.setItem(k, v);
+    });
+  }, []);
+
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/login"  element={<SignIn />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/terms-of-service" element={<TermsOfService />} />
-        <Route path="/" element={
-          <FormGate><IntakeForm /></FormGate>
-        } />
-        <Route path="/admin" element={
-          <AdminRoute><AdminDashboard /></AdminRoute>
-        } />
-        <Route path="/admin/sessions/:id" element={
-          <AdminRoute><SessionDetail /></AdminRoute>
-        } />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+      <div id="main-content" tabIndex={-1} style={{ outline: 'none' }}>
+        <Routes>
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/login"  element={<SignIn />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/" element={
+            <FormGate><IntakeForm /></FormGate>
+          } />
+          <Route path="/admin" element={
+            <AdminRoute><AdminDashboard /></AdminRoute>
+          } />
+          <Route path="/admin/sessions/:id" element={
+            <AdminRoute><SessionDetail /></AdminRoute>
+          } />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
       <Footer />
     </BrowserRouter>
   );

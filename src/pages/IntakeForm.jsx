@@ -126,7 +126,13 @@ export default function IntakeForm() {
     setError('');
     setSaving(true);
     try {
-      const payload = { ...form, age: parseInt(form.age) };
+      const payload = {
+        ...form,
+        age: parseInt(form.age),
+        utm_source:   sessionStorage.getItem('utm_source')   || undefined,
+        utm_medium:   sessionStorage.getItem('utm_medium')   || undefined,
+        utm_campaign: sessionStorage.getItem('utm_campaign') || undefined,
+      };
       if (isLoggedIn && secretWord.trim()) payload.secretWord = secretWord.trim();
       const result = await submitForm(payload);
       localStorage.setItem('profile_id', result.id);
@@ -294,7 +300,8 @@ export default function IntakeForm() {
           </div>
 
           {error && <p className="form-error">{error}</p>}
-          <button className="btn btn-primary btn-lg" type="submit" disabled={saving || isComingSoon || (form.email && !validEmail(form.email))} style={{ width:'100%' }}>
+          <button className="btn btn-primary btn-lg" type="submit" disabled={saving || isComingSoon || (form.email && !validEmail(form.email))} style={{ width:'100%', gap: 10 }}>
+            {saving && <span className="spinner" />}
             {saving ? 'Saving…' : hasExisting ? 'Update my details' : 'Count me in 🎳'}
           </button>
           <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', marginTop: 12 }}>

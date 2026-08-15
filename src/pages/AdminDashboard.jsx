@@ -44,6 +44,13 @@ export default function AdminDashboard() {
   const [showModal, setShowModal] = useState(false);
   const [sessionForm, setSessionForm] = useState({ date:'', time_slot:'', alley_name:'', lane_count:'' });
   const [error, setError] = useState('');
+  // Loading states for each tab
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [accessLoading, setAccessLoading] = useState(false);
+  // Confirmation modals for destructive admin actions
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, name, age }
+  const [revokeConfirm, setRevokeConfirm] = useState(null); // account object
 
   useEffect(() => { loadUsers(); }, [filters, ageBands, search]);
   useEffect(() => { loadTotal(); }, []);
@@ -51,13 +58,16 @@ export default function AdminDashboard() {
   useEffect(() => { if (tab === 'access') loadAccounts(); }, [tab]);
 
   async function loadUsers() {
-    const params = {};
-    if (filters.gender) params.gender = filters.gender;
-    if (filters.area) params.area = filters.area;
-    if (filters.day) params.day = filters.day;
-    if (ageBands.length) params.ages = ageBands.join(',');
-    if (search.trim()) params.search = search.trim();
-    setUsers(await getUsers(params));
+    setUsersLoading(true);
+    try {
+      const params = {};
+      if (filters.gender) params.gender = filters.gender;
+      if (filters.area) params.area = filters.area;
+      if (filters.day) params.day = filters.day;
+      if (ageBands.length) params.ages = ageBands.join(',');
+      if (search.trim()) params.search = search.trim();
+      setUsers(await getUsers(params));
+    } finally { setUsersLoading(false); }
   }
 
   // Unfiltered total for the "Showing X of Y" safeguard. Uses the existing
@@ -66,8 +76,15 @@ export default function AdminDashboard() {
     try { setTotalUsers((await getUsers({})).length); } catch { /* leave as-is */ }
   }
 
-  async function loadSessions() { setSessions(await getSessions()); }
-  async function loadAccounts() { setAccounts(await getAccounts()); }
+  async function loadSessions() {
+    setSessionsLoading(true);
+    try { setSessions(await getSessions()); } finally { setSessionsLoading(false); }
+  }
+
+  async function loadAccounts() {
+    setAccessLoading(true);
+    try { setAccounts(await getAccounts()); } finally { setAccessLoading(false); }
+  }
 
   function toggleSelect(id) {
     setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
@@ -88,8 +105,18 @@ export default function AdminDashboard() {
 
   async function toggleRole(account) {
     const newRole = account.role === 'admin' ? 'user' : 'admin';
+    if (newRole === 'user') { setRevokeConfirm(account); return; }
     try {
       const updated = await setAccountRole(account.id, newRole);
+      setAccounts(a => a.map(x => x.id === updated.id ? updated : x));
+    } catch (err) { alert(err.message); }
+  }
+
+  async function confirmRevoke() {
+    const account = revokeConfirm;
+    setRevokeConfirm(null);
+    try {
+      const updated = await setAccountRole(account.id, 'user');
       setAccounts(a => a.map(x => x.id === updated.id ? updated : x));
     } catch (err) { alert(err.message); }
   }
@@ -127,8 +154,11 @@ export default function AdminDashboard() {
     finally { setPwdSaving(false); }
   }
 
-  async function handleDelete(u) {
-    if (!window.confirm(`Delete ${u.name}, ${u.age}? This cannot be undone.`)) return;
+  function handleDelete(u) { setDeleteConfirm(u); }
+
+  async function confirmDelete() {
+    const u = deleteConfirm;
+    setDeleteConfirm(null);
     try {
       await deleteUser(u.id);
       setUsers(list => list.filter(x => x.id !== u.id));
@@ -220,41 +250,45 @@ export default function AdminDashboard() {
                 <thead><tr>
                   <th></th>
                   <th>Name</th><th>Age</th><th>Gender</th><th>Area</th>
-                  <th>WhatsApp</th><th>Email</th><th>Instagram</th><th>Marketing</th><th>Availability</th><th>Joined</th><th></th>
+                  <th>WhatsApp</th><th>Email</th><th>Instagram</th><th>Marketing</th><th>UTM Source</th><th>Availability</th><th>Joined</th><th></th>
                 </tr></thead>
                 <tbody>
-                  {displayedUsers.map(u => (
-                    <tr key={u.id} className={selected.includes(u.id) ? 'selected' : ''}>
-                      <td><input type="checkbox" checked={selected.includes(u.id)} onChange={() => toggleSelect(u.id)} /></td>
-                      <td><strong>{u.name}</strong></td>
-                      <td>{u.age}</td>
-                      <td>{u.gender}</td>
-                      <td>{u.area}</td>
-                      <td>{u.whatsapp}</td>
-                      <td style={{ fontSize:12 }}>{u.email || '—'}</td>
-                      <td style={{ fontSize:12 }}>
-                        {u.instagram
-                          ? <a href={`https://instagram.com/${u.instagram}`} target="_blank" rel="noopener noreferrer" style={{ color:'var(--primary)', fontWeight:700, textDecoration:'none' }}>@{u.instagram}</a>
-                          : <span style={{ color:'var(--text-faint)' }}>—</span>}
-                      </td>
-                      <td>
-                        {u.marketing_opt_in
-                          ? <span className="badge" style={{ background:'#10b98122', color:'#10b981' }}>Opted in</span>
-                          : <span style={{ color:'var(--text-faint)', fontSize:12 }}>—</span>}
-                      </td>
-                      <td><AvailChips availability={u.availability} /></td>
-                      <td style={{ fontSize:12, color:'var(--text-muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
-                      <td style={{ display:'flex', gap:4 }}>
-                        <button className="btn" title="Reveal secret word"
-                          style={{ fontSize:12, padding:'3px 9px' }}
-                          onClick={() => openReveal(u)}>🔒</button>
-                        <button className="btn" title="Delete entry"
-                          style={{ fontSize:12, padding:'3px 9px', color:'var(--danger)' }}
-                          onClick={() => handleDelete(u)}>✕</button>
-                      </td>
-                    </tr>
-                  ))}
-                  {!displayedUsers.length && <tr><td colSpan={12} style={{ textAlign:'center', color:'var(--text-muted)', padding:32 }}>No users found</td></tr>}
+                  {usersLoading
+                    ? <tr><td colSpan={13} style={{ textAlign:'center', padding:40 }}><span className="spinner" style={{ width:20, height:20, borderWidth:3 }} /></td></tr>
+                    : displayedUsers.map(u => (
+                      <tr key={u.id} className={selected.includes(u.id) ? 'selected' : ''}>
+                        <td><input type="checkbox" checked={selected.includes(u.id)} onChange={() => toggleSelect(u.id)} /></td>
+                        <td><strong>{u.name}</strong></td>
+                        <td>{u.age}</td>
+                        <td>{u.gender}</td>
+                        <td>{u.area}</td>
+                        <td>{u.whatsapp}</td>
+                        <td style={{ fontSize:12 }}>{u.email || '—'}</td>
+                        <td style={{ fontSize:12 }}>
+                          {u.instagram
+                            ? <a href={`https://instagram.com/${u.instagram}`} target="_blank" rel="noopener noreferrer" style={{ color:'var(--primary)', fontWeight:700, textDecoration:'none' }}>@{u.instagram}</a>
+                            : <span style={{ color:'var(--text-faint)' }}>—</span>}
+                        </td>
+                        <td>
+                          {u.marketing_opt_in
+                            ? <span className="badge" style={{ background:'#10b98122', color:'#10b981' }}>Opted in</span>
+                            : <span style={{ color:'var(--text-faint)', fontSize:12 }}>—</span>}
+                        </td>
+                        <td style={{ fontSize:12, color:'var(--text-muted)' }}>{u.utm_source || <span style={{ color:'var(--text-faint)' }}>—</span>}</td>
+                        <td><AvailChips availability={u.availability} /></td>
+                        <td style={{ fontSize:12, color:'var(--text-muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
+                        <td style={{ display:'flex', gap:4 }}>
+                          <button className="btn" title="Reveal secret word"
+                            style={{ fontSize:12, padding:'3px 9px' }}
+                            onClick={() => openReveal(u)}>🔒</button>
+                          <button className="btn" title="Delete entry"
+                            style={{ fontSize:12, padding:'3px 9px', color:'var(--danger)' }}
+                            onClick={() => handleDelete(u)}>✕</button>
+                        </td>
+                      </tr>
+                    ))
+                  }
+                  {!usersLoading && !displayedUsers.length && <tr><td colSpan={13} style={{ textAlign:'center', color:'var(--text-muted)', padding:32 }}>No users found</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -279,16 +313,19 @@ export default function AdminDashboard() {
                 <th>Date</th><th>Time</th><th>Alley</th><th>Members</th><th>Status</th>
               </tr></thead>
               <tbody>
-                {sessions.map(s => (
-                  <tr key={s.id} style={{ cursor:'pointer' }} onClick={() => nav(`/admin/sessions/${s.id}`)}>
-                    <td>{s.date}</td>
-                    <td>{s.time_slot}</td>
-                    <td>{s.alley_name}</td>
-                    <td>{s.member_count}</td>
-                    <td><span className="badge" style={{ background: statusColors[s.status] + '22', color: statusColors[s.status] }}>{s.status}</span></td>
-                  </tr>
-                ))}
-                {!sessions.length && <tr><td colSpan={5} style={{ textAlign:'center', color:'var(--text-muted)', padding:32 }}>No sessions yet</td></tr>}
+                {sessionsLoading
+                  ? <tr><td colSpan={5} style={{ textAlign:'center', padding:40 }}><span className="spinner" style={{ width:20, height:20, borderWidth:3 }} /></td></tr>
+                  : sessions.map(s => (
+                    <tr key={s.id} style={{ cursor:'pointer' }} onClick={() => nav(`/admin/sessions/${s.id}`)}>
+                      <td>{s.date}</td>
+                      <td>{s.time_slot}</td>
+                      <td>{s.alley_name}</td>
+                      <td>{s.member_count}</td>
+                      <td><span className="badge" style={{ background: statusColors[s.status] + '22', color: statusColors[s.status] }}>{s.status}</span></td>
+                    </tr>
+                  ))
+                }
+                {!sessionsLoading && !sessions.length && <tr><td colSpan={5} style={{ textAlign:'center', color:'var(--text-muted)', padding:32 }}>No sessions yet</td></tr>}
               </tbody>
             </table>
           </div>
@@ -306,24 +343,27 @@ export default function AdminDashboard() {
                   <th>Email</th><th>Role</th><th>Joined</th><th>Action</th>
                 </tr></thead>
                 <tbody>
-                  {accounts.map(a => (
-                    <tr key={a.id}>
-                      <td>{a.email}</td>
-                      <td>
-                        <span className="badge" style={{
-                          background: a.role === 'admin' ? '#6366f122' : '#f59e0b22',
-                          color: a.role === 'admin' ? '#6366f1' : '#f59e0b'
-                        }}>{a.role}</span>
-                      </td>
-                      <td style={{ fontSize:12, color:'var(--text-muted)' }}>{new Date(a.created_at).toLocaleDateString()}</td>
-                      <td>
-                        <button className="btn" style={{ fontSize:12 }} onClick={() => toggleRole(a)}>
-                          {a.role === 'admin' ? 'Revoke Admin' : 'Grant Admin'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {!accounts.length && <tr><td colSpan={4} style={{ textAlign:'center', color:'var(--text-muted)', padding:32 }}>No accounts yet</td></tr>}
+                  {accessLoading
+                    ? <tr><td colSpan={4} style={{ textAlign:'center', padding:40 }}><span className="spinner" style={{ width:20, height:20, borderWidth:3 }} /></td></tr>
+                    : accounts.map(a => (
+                      <tr key={a.id}>
+                        <td>{a.email}</td>
+                        <td>
+                          <span className="badge" style={{
+                            background: a.role === 'admin' ? '#6366f122' : '#f59e0b22',
+                            color: a.role === 'admin' ? '#6366f1' : '#f59e0b'
+                          }}>{a.role}</span>
+                        </td>
+                        <td style={{ fontSize:12, color:'var(--text-muted)' }}>{new Date(a.created_at).toLocaleDateString()}</td>
+                        <td>
+                          <button className="btn" style={{ fontSize:12 }} onClick={() => toggleRole(a)}>
+                            {a.role === 'admin' ? 'Revoke Admin' : 'Grant Admin'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  }
+                  {!accessLoading && !accounts.length && <tr><td colSpan={4} style={{ textAlign:'center', color:'var(--text-muted)', padding:32 }}>No accounts yet</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -394,6 +434,38 @@ export default function AdminDashboard() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete user confirmation modal */}
+      {deleteConfirm && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>Delete user?</h3>
+            <p style={{ fontSize:14, color:'var(--text-muted)', marginBottom:20 }}>
+              This will permanently delete <strong>{deleteConfirm.name}</strong>{deleteConfirm.age ? `, ${deleteConfirm.age}` : ''}. This cannot be undone.
+            </p>
+            <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+              <button className="btn" onClick={() => setDeleteConfirm(null)}>Cancel</button>
+              <button className="btn btn-primary" style={{ background:'var(--danger)', borderColor:'var(--danger)' }} onClick={confirmDelete}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Revoke admin confirmation modal */}
+      {revokeConfirm && (
+        <div className="modal-overlay" onClick={() => setRevokeConfirm(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>Revoke admin access?</h3>
+            <p style={{ fontSize:14, color:'var(--text-muted)', marginBottom:20 }}>
+              This will remove admin access for <strong>{revokeConfirm.email}</strong>. They will no longer be able to access the admin dashboard.
+            </p>
+            <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+              <button className="btn" onClick={() => setRevokeConfirm(null)}>Cancel</button>
+              <button className="btn btn-primary" style={{ background:'var(--danger)', borderColor:'var(--danger)' }} onClick={confirmRevoke}>Revoke Access</button>
+            </div>
           </div>
         </div>
       )}

@@ -7,6 +7,7 @@ export default function SignIn() {
   const nav = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -50,7 +51,13 @@ export default function SignIn() {
           </div>
           <div className="field">
             <label>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+            <div style={{ position: 'relative' }}>
+              <input type={showPwd ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required style={{ paddingRight: 52 }} />
+              <button type="button" onClick={() => setShowPwd(p => !p)}
+                style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', fontSize:12, fontWeight:700, padding:'2px 4px' }}>
+                {showPwd ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
           {error && <p className="form-error">{error}</p>}
           <div style={{ textAlign:'right', marginBottom:8 }}><Link to="/forgot-password" style={{ fontSize:13, color:'var(--text-muted)' }}>Forgot password?</Link></div>

@@ -3,7 +3,7 @@ const pool = require('../db/pool');
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 
 // Explicit column list — excludes secret_word_plain which is only returned by /reveal-secret
-const USER_COLS = 'id, account_id, name, age, gender, area, whatsapp, email, occupation, interests, availability, group_size_pref, bio, instagram, marketing_opt_in, edit_key, created_at';
+const USER_COLS = 'id, account_id, name, age, gender, area, whatsapp, email, occupation, interests, availability, group_size_pref, bio, instagram, marketing_opt_in, utm_source, utm_medium, utm_campaign, edit_key, created_at';
 
 router.use(verifyToken, requireAdmin);
 
