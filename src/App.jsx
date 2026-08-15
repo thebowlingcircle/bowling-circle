@@ -8,6 +8,10 @@ import SessionDetail from './pages/SessionDetail';
 import ForgotPassword from './pages/ForgotPassword';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import About from './pages/About';
+import OurStory from './pages/OurStory';
+import Contact from './pages/Contact';
+import FAQ from './pages/FAQ';
 import Footer from './components/Footer';
 
 function AdminRoute({ children }) {
@@ -50,6 +54,10 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/our-story" element={<OurStory />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/faq" element={<FAQ />} />
           <Route path="/" element={
             <FormGate><IntakeForm /></FormGate>
           } />

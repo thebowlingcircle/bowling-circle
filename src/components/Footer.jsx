@@ -24,11 +24,23 @@ export default function Footer() {
         fontSize: 12,
         color: 'var(--text-faint)',
       }}>
-        <span>© {new Date().getFullYear()} The Bowling Circle · Pune, India</span>
-        <span style={{ margin: '0 8px' }}>·</span>
-        <Link to="/privacy-policy" className="footer-link">Privacy Policy</Link>
-        <span style={{ margin: '0 8px' }}>·</span>
-        <Link to="/terms-of-service" className="footer-link">Terms of Service</Link>
+        <div style={{ marginBottom: 6 }}>
+          © {new Date().getFullYear()} The Bowling Circle · Pune, India
+        </div>
+        <div style={{ marginBottom: 5 }}>
+          <Link to="/about" className="footer-link">About Us</Link>
+          <span style={{ margin: '0 7px' }}>·</span>
+          <Link to="/our-story" className="footer-link">Our Story</Link>
+          <span style={{ margin: '0 7px' }}>·</span>
+          <Link to="/contact" className="footer-link">Contact Us</Link>
+          <span style={{ margin: '0 7px' }}>·</span>
+          <Link to="/faq" className="footer-link">FAQ</Link>
+        </div>
+        <div>
+          <Link to="/privacy-policy" className="footer-link">Privacy Policy</Link>
+          <span style={{ margin: '0 7px' }}>·</span>
+          <Link to="/terms-of-service" className="footer-link">Terms of Service</Link>
+        </div>
       </footer>
     </>
   );

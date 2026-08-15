@@ -15,7 +15,7 @@ export default function LegalLayout({ title, updated, children }) {
 
         <div className="hero">
           <h1>{title}</h1>
-          <p>Last updated: {updated}</p>
+          {updated && <p>Last updated: {updated}</p>}
         </div>
 
         <div className="card">
